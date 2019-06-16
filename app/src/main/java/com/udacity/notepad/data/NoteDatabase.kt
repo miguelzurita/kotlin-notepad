@@ -3,17 +3,14 @@ package com.udacity.notepad.data
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
-import android.database.sqlite.SQLiteDatabase
-
-import java.util.ArrayList
 import java.util.Date
 
 import android.provider.BaseColumns._ID
-import com.udacity.notepad.data.NotesContract.NoteTable.Companion.CREATED_AT
-import com.udacity.notepad.data.NotesContract.NoteTable.Companion.IS_PINNED
-import com.udacity.notepad.data.NotesContract.NoteTable.Companion.TEXT
-import com.udacity.notepad.data.NotesContract.NoteTable.Companion.UPDATED_AT
-import com.udacity.notepad.data.NotesContract.NoteTable.Companion._TABLE_NAME
+import com.udacity.notepad.data.NotesContract.NoteTable.CREATED_AT
+import com.udacity.notepad.data.NotesContract.NoteTable.IS_PINNED
+import com.udacity.notepad.data.NotesContract.NoteTable.TEXT
+import com.udacity.notepad.data.NotesContract.NoteTable.UPDATED_AT
+import com.udacity.notepad.data.NotesContract.NoteTable._TABLE_NAME
 import org.jetbrains.anko.db.transaction
 
 class NoteDatabase(context: Context) {
@@ -39,22 +36,19 @@ class NoteDatabase(context: Context) {
         val questionMarks = ids.map { "?" }.joinToString { ", " }
         val args = ids.map { it.toString() }
         val selection = "$_ID IN ($questionMarks)"
-        val cursor = helper.readableDatabase.query(_TABLE_NAME,
+        return helper.readableDatabase.query(_TABLE_NAME,
                 null,
                 selection,
                 args.toTypedArray(),
                 null,
                 null,
-                CREATED_AT)
-        return cursor.use(this::allFromCursor)
+                CREATED_AT).use(this::allFromCursor)
     }
 
     fun insert(vararg notes: Note) {
-        val values = fromNotes(notes)
-        val db = helper.writableDatabase
-        db.transaction {
-            for (value in values) {
-                db.insert(_TABLE_NAME, null, value)
+        helper.writableDatabase.transaction {
+            fromNotes(notes).forEach{
+                insert(_TABLE_NAME, null, it)
             }
         }
     }
@@ -75,19 +69,17 @@ class NoteDatabase(context: Context) {
 
     private fun fromCursor(cursor: Cursor): Note {
         var col = 0
-        val note = Note().apply {
+        return Note().apply {
             id = cursor.getInt(col++)
             text = cursor.getString(col++)
             isPinned = cursor.getInt(col++) != 0
             createdAt = Date(cursor.getLong(col++))
             updatedAt = Date(cursor.getLong(col))
         }
-
-        return note
     }
 
     private fun allFromCursor(cursor: Cursor): List<Note> {
-        val retval = ArrayList<Note>()
+        val retval = mutableListOf<Note>()
         while (cursor.moveToNext()) {
             retval.add(fromCursor(cursor))
         }
@@ -96,9 +88,9 @@ class NoteDatabase(context: Context) {
 
     private fun fromNote(note: Note): ContentValues {
         return ContentValues().apply {
-            val noteId = note.id
-            if (noteId != -1) {
-                put(_ID, noteId)
+            val id = note.id
+            if (id != -1) {
+                put(_ID, id)
             }
             put(TEXT, note.text)
             put(IS_PINNED, note.isPinned)
@@ -108,10 +100,6 @@ class NoteDatabase(context: Context) {
     }
 
     private fun fromNotes(notes: Array<out Note>): List<ContentValues> {
-        val values = ArrayList<ContentValues>()
-        for (note in notes) {
-            values.add(fromNote(note))
-        }
-        return values
+        return notes.map(this::fromNote)
     }
 }

@@ -6,19 +6,16 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.TextView
-
 import com.udacity.notepad.R
 import com.udacity.notepad.data.DataStore
 import com.udacity.notepad.data.Note
 import kotlinx.android.synthetic.main.activity_create.*
-
 import java.util.Date
 
 class CreateActivity : AppCompatActivity() {
 
-
     companion object {
+
         operator fun get(context: Context): Intent {
             return Intent(context, CreateActivity::class.java)
         }
@@ -46,15 +43,15 @@ class CreateActivity : AppCompatActivity() {
     }
 
     private fun save() {
-        DataStore.execute(Runnable {
+        DataStore.execute {
             val note = updateNote()
             DataStore.notes.insert(note)
-        })
+        }
     }
 
     private fun updateNote(): Note {
         val note = Note()
-        note.text = edit_text!!.text.toString()
+        note.text = edit_text.text.toString()
         note.updatedAt = Date()
         return note
     }
